@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Luna IA</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #101010;
+    color: white;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.app {
+    width: 100%;
+    max-width: 450px;
+    height: 100vh;
+    max-height: 800px;
+    background: #181818;
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    padding: 20px;
+    text-align: center;
+    background: #222;
+    border-bottom: 1px solid #333;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 28px;
+}
+
+.header p {
+    margin: 6px 0 0;
+    color: #aaa;
+}
+
+.messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.message {
+    max-width: 85%;
+    padding: 12px 15px;
+    margin-bottom: 12px;
+    border-radius: 16px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+}
+
+.luna {
+    background: #303030;
+    margin-right: auto;
+}
+
+.user {
+    background: #555;
+    margin-left: auto;
+}
+
+.input-area {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    background: #222;
+}
+
+#messageInput {
+    flex: 1;
+    border: none;
+    outline: none;
+    border-radius: 14px;
+    padding: 14px;
+    font-size: 16px;
+}
+
+button {
+    border: none;
+    border-radius: 14px;
+    padding: 0 15px;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+#sendButton {
+    background: white;
+}
+
+#voiceButton {
+    background: #444;
+    color: white;
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+    <div class="header">
+        <h1>🌙 Luna</h1>
+        <p>Sua IA pessoal</p>
+    </div>
+
+    <div class="messages" id="messages">
+
+        <div class="message luna">
+            Oi! 😎 Eu sou a Luna.
+            Sou sua assistente pessoal, inteligente e engraçada 😂
+
+            Pode falar comigo!
+        </div>
+
+    </div>
+
+    <div class="input-area">
+
+        <input
+            id="messageInput"
+            type="text"
+            placeholder="Fale com a Luna..."
+        >
+
+        <button id="voiceButton">🎙️</button>
+
+        <button id="sendButton">➤</button>
+
+    </div>
+
+</div>
+
+<script>
+
+const API_URL = "https://luna-ai-rxsi.onrender.com/chat";
+
+const input = document.getElementById("messageInput");
+const sendButton = document.getElementById("sendButton");
+const voiceButton = document.getElementById("voiceButton");
+const messages = document.getElementById("messages");
+
+function addMessage(text, type) {
+
+    const message = document.createElement("div");
+
+    message.className = "message " + type;
+
+    message.textContent = text;
+
+    messages.appendChild(message);
+
+    messages.scrollTop = messages.scrollHeight;
+}
+
+async function sendMessage() {
+
+    const text = input.value.trim();
+
+    if (!text) return;
+
+    addMessage(text, "user");
+
+    input.value = "";
+
+    addMessage("Luna está pensando... 🤔", "luna");
+
+    try {
+
+        const response = await fetch(API_URL, {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+                message: text
+            })
+
+        });
+
+        const data = await response.json();
+
+        const lunaMessages =
+            document.querySelectorAll(".message.luna");
+
+        lunaMessages[lunaMessages.length - 1].textContent =
+            data.reply || "Hmm... não consegui responder agora 😅";
+
+        if (data.reply) {
+            speak(data.reply);
+        }
+
+    } catch (error) {
+
+        const lunaMessages =
+            document.querySelectorAll(".message.luna");
+
+        lunaMessages[lunaMessages.length - 1].textContent =
+            "Ops 😅 Não consegui falar com meu cérebro agora.";
+
+    }
+}
+
+function speak(text) {
+
+    if (!("speechSynthesis" in window)) return;
+
+    const voice = new SpeechSynthesisUtterance(text);
+
+    voice.lang = "pt-BR";
+    voice.rate = 1;
+    voice.pitch = 1;
+
+    speechSynthesis.speak(voice);
+}
+
+sendButton.addEventListener("click", sendMessage);
+
+input.addEventListener("keydown", function(event) {
+
+    if (event.key === "Enter") {
+        sendMessage();
+    }
+
+});
+
+voiceButton.addEventListener("click", function() {
+
+    if (!("webkitSpeechRecognition" in window) &&
+        !("SpeechRecognition" in window)) {
+
+        alert("O reconhecimento de voz não está disponível neste navegador.");
+
+        return;
+    }
+
+    const SpeechRecognition =
+        window.SpeechRecognition ||
+        window.webkitSpeechRecognition;
+
+    const recognition = new SpeechRecognition();
+
+    recognition.lang = "pt-BR";
+
+    recognition.start();
+
+    recognition.onresult = function(event) {
+
+        const text =
+            event.results[0][0].transcript;
+
+        input.value = text;
+
+        sendMessage();
+
+    };
+
+});
+
+</script>
+
+</body>
+</html>
